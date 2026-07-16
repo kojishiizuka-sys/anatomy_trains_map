@@ -10,27 +10,33 @@
             --card-bg: #ffffff;
             --text-color: #333333;
             --accent-color: #2b6cb0;
-            --accent-light: #ebf8ff;
             --border-color: #e2e8f0;
             --highlight-color: #e53e3e;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: var(--bg-color); color: var(--text-color); line-height: 1.6; padding: 20px; }
-        .container { max-width: 600px; margin: 0 auto; background: var(--card-bg); padding: 25px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05); }
-        h1 { font-size: 1.5rem; text-align: center; margin-bottom: 20px; color: var(--accent-color); }
+        body { font-family: sans-serif; background-color: var(--bg-color); padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; background: var(--card-bg); padding: 25px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
         .search-box { margin-bottom: 25px; }
-        label { display: block; font-weight: bold; margin-bottom: 8px; font-size: 0.9rem; }
-        input, select { width: 100%; padding: 12px; border: 2px solid var(--border-color); border-radius: 8px; font-size: 1rem; margin-bottom: 10px; background-color: #fff; }
-        .result-section { margin-top: 20px; }
-        .line-card { border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; margin-bottom: 20px; background-color: #fff; }
-        .line-name { font-weight: bold; color: var(--accent-color); margin-bottom: 15px; font-size: 1rem; border-bottom: 2px solid var(--accent-light); padding-bottom: 5px; }
+        input, select { width: 100%; padding: 12px; border: 2px solid var(--border-color); border-radius: 8px; margin-bottom: 10px; }
+        .line-card { border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; margin-bottom: 20px; }
+        .line-name { font-weight: bold; color: var(--accent-color); margin-bottom: 15px; border-bottom: 2px solid var(--border-color); padding-bottom: 5px; }
+        
+        /* 路線図アイコンのスタイル */
         .station { position: relative; padding-left: 25px; margin-bottom: 12px; font-size: 0.95rem; }
-        .station::before { content: ''; position: absolute; left: 5px; top: 6px; width: 10px; height: 10px; border-radius: 50%; background-color: var(--border-color); border: 2px solid #fff; box-shadow: 0 0 0 2px var(--border-color); z-index: 2; }
-        .station::after { content: ''; position: absolute; left: 9px; top: 16px; width: 2px; height: calc(100% + 2px); background-color: var(--border-color); z-index: 1; }
+        .station::before {
+            content: ''; position: absolute; left: 5px; top: 6px; width: 10px; height: 10px;
+            border-radius: 50%; background-color: var(--border-color); border: 2px solid #fff;
+            box-shadow: 0 0 0 2px var(--border-color); z-index: 2;
+        }
+        .station::after {
+            content: ''; position: absolute; left: 9px; top: 16px; width: 2px;
+            height: calc(100% + 2px); background-color: var(--border-color); z-index: 1;
+        }
         .station:last-child::after { display: none; }
+        
+        /* ハイライト（検索一致）用 */
         .station.highlight { font-weight: bold; color: var(--highlight-color); }
         .station.highlight::before { background-color: var(--highlight-color); box-shadow: 0 0 0 2px var(--highlight-color); }
-        .no-result { text-align: center; color: #718096; font-size: 0.95rem; margin-top: 20px; }
     </style>
 </head>
 <body>
@@ -42,15 +48,13 @@
         <select id="muscle-select">
             <option value="">-- 筋肉を選択してください --</option>
         </select>
-        <input type="text" id="muscle-search" placeholder="または、筋肉名を入力して検索...">
+        <input type="text" id="muscle-search" placeholder="筋肉名を入力して検索...">
     </div>
-
-    <div id="results" class="result-section">
-        <div class="no-result">筋肉を選択・入力すると、つながりのあるラインが表示されます。</div>
-    </div>
+    <div id="results"></div>
 </div>
 
 <script>
+// データ定義（先ほどの最新版をそのまま使用）
 const anatomyTrainsData = [
   { lineName: "スーパーフィシャル・バック・ライン (SBL)", stations: ["帽状腱膜", "後頭下筋群", "脊柱起立筋", "仙結節靭帯", "ハムストリングス", "腓腹筋", "足底腱膜"] },
   { lineName: "スーパーフィシャル・フロント・ライン (SFL)", stations: ["頭皮筋膜", "胸鎖乳突筋", "胸骨筋", "腹直筋", "大腿直筋", "前脛骨筋", "短趾伸筋"] },
@@ -61,15 +65,17 @@ const anatomyTrainsData = [
   { lineName: "ディープ・バック・アーム・ライン (DBAL)", stations: ["肩甲挙筋", "菱形筋", "回旋筋腱板", "上腕三頭筋", "尺側手根伸筋", "小指球筋"] },
   { lineName: "スーパーフィシャル・バック・アーム・ライン (SBAL)", stations: ["僧帽筋", "三角筋", "外側上腕筋間中隔", "前腕伸筋群"] },
   { lineName: "ディープ・フロント・アーム・ライン (DFAL)", stations: ["小胸筋", "鎖骨下筋", "上腕二頭筋", "橈骨骨膜", "橈側手根屈筋", "母指球筋"] },
-  { lineName: "スーパーフィシャル・フロント・アーム・ライン (SFAL)", stations: ["大胸筋", "広背筋", "内側上腕筋間中隔", "前腕屈筋群"] },
+  { lineName: "スーパーフィシャル・フロント・ライン (SFAL)", stations: ["大胸筋", "広背筋", "内側上腕筋間中隔", "前腕屈筋群"] },
   { lineName: "ディープ・フロント・ライン (DFL)", stations: ["頭長筋", "頭直筋", "舌骨下筋群", "斜角筋", "心膜", "横隔膜", "腸腰筋", "骨盤底筋群", "内転筋群", "膝窩筋", "後脛骨筋", "長趾屈筋"] }
 ];
 
 const selectEl = document.getElementById('muscle-select');
 const searchEl = document.getElementById('muscle-search');
+const resultsContainer = document.getElementById('results');
+
+// セレクトボックス初期化
 const allMuscles = new Set();
 anatomyTrainsData.forEach(line => line.stations.forEach(m => allMuscles.add(m)));
-
 Array.from(allMuscles).sort().forEach(muscle => {
     const option = document.createElement('option');
     option.value = muscle;
@@ -78,20 +84,15 @@ Array.from(allMuscles).sort().forEach(muscle => {
 });
 
 function updateResults(searchTerm) {
-    const resultsContainer = document.getElementById('results');
     resultsContainer.innerHTML = '';
-    if (!searchTerm) {
-        resultsContainer.innerHTML = '<div class="no-result">筋肉を選択・入力すると、つながりのあるラインが表示されます。</div>';
-        return;
-    }
+    if (!searchTerm) return;
+    
     anatomyTrainsData.forEach(line => {
         if (line.stations.some(s => s.includes(searchTerm))) {
             const card = document.createElement('div');
             card.className = 'line-card';
-            const lineNameDiv = document.createElement('div');
-            lineNameDiv.className = 'line-name';
-            lineNameDiv.textContent = line.lineName;
-            card.appendChild(lineNameDiv);
+            card.innerHTML = `<div class="line-name">${line.lineName}</div>`;
+            
             line.stations.forEach(station => {
                 const stationDiv = document.createElement('div');
                 stationDiv.className = 'station' + (station.includes(searchTerm) ? ' highlight' : '');
