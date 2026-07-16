@@ -4,8 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Anatomy Trains Map</title>
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#2b6cb0">
     <style>
         :root {
             --bg-color: #f4f6f9;
@@ -17,11 +15,7 @@
             --highlight-color: #e53e3e;
         }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -40,29 +34,13 @@
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
         }
 
-        h1 {
-            font-size: 1.5rem;
-            text-align: center;
-            margin-bottom: 20px;
-            color: var(--accent-color);
-        }
+        h1 { font-size: 1.5rem; text-align: center; margin-bottom: 20px; color: var(--accent-color); }
 
-        .search-box {
-            margin-bottom: 20px;
-        }
+        .search-box { margin-bottom: 25px; }
 
-        label {
-            display: block;
-            font-weight: bold;
-            margin-bottom: 8px;
-            font-size: 0.9rem;
-        }
+        label { display: block; font-weight: bold; margin-bottom: 8px; font-size: 0.9rem; }
 
-        .input-group {
-            margin-bottom: 12px;
-        }
-
-        input[type="text"], select {
+        select {
             width: 100%;
             padding: 12px;
             border: 2px solid var(--border-color);
@@ -73,21 +51,9 @@
             transition: border-color 0.2s;
         }
 
-        input[type="text"]:focus, select:focus {
-            border-color: var(--accent-color);
-        }
+        select:focus { border-color: var(--accent-color); }
 
-        .or-divider {
-            text-align: center;
-            margin: 8px 0;
-            color: #a0aec0;
-            font-size: 0.8rem;
-            font-weight: bold;
-        }
-
-        .result-section {
-            margin-top: 20px;
-        }
+        .result-section { margin-top: 20px; }
 
         .line-card {
             border: 1px solid var(--border-color);
@@ -104,10 +70,6 @@
             font-size: 1rem;
             border-bottom: 2px solid var(--accent-light);
             padding-bottom: 5px;
-        }
-
-        .route-map {
-            display: block;
         }
 
         .station {
@@ -142,26 +104,16 @@
             z-index: 1;
         }
 
-        .station:last-child::after {
-            display: none;
-        }
+        .station:last-child::after { display: none; }
 
-        .station.highlight {
-            font-weight: bold;
-            color: var(--highlight-color);
-        }
+        .station.highlight { font-weight: bold; color: var(--highlight-color); }
 
         .station.highlight::before {
             background-color: var(--highlight-color);
             box-shadow: 0 0 0 2px var(--highlight-color);
         }
 
-        .no-result {
-            text-align: center;
-            color: #718096;
-            font-size: 0.95rem;
-            margin-top: 20px;
-        }
+        .no-result { text-align: center; color: #718096; font-size: 0.95rem; margin-top: 20px; }
     </style>
 </head>
 <body>
@@ -170,46 +122,80 @@
     <h1>Anatomy Trains Map</h1>
     
     <div class="search-box">
-        <div class="input-group">
-            <label for="muscle-search">筋肉名でキーワード検索（部分一致）:</label>
-            <input type="text" id="muscle-search" placeholder="例: 三頭筋、大腿、屈筋">
-        </div>
-        
-        <div class="or-divider">または</div>
-        
-        <div class="input-group">
-            <label for="muscle-select">一覧から選択:</label>
-            <select id="muscle-select">
-                <option value="">-- 筋肉を選択してください --</option>
-            </select>
-        </div>
+        <label for="muscle-select">痛みのある筋肉を選択:</label>
+        <select id="muscle-select">
+            <option value="">-- 筋肉を選択してください --</option>
+        </select>
     </div>
 
     <div id="results" class="result-section">
-        <div class="no-result">検索または選択すると、つながりのあるラインが表示されます。</div>
+        <div class="no-result">筋肉を選択すると、つながりのあるラインと筋肉が路線図風に表示されます。</div>
     </div>
 </div>
 
 <script>
 const anatomyTrainsData = [
-  { lineId: "sbl", lineName: "スーパーフィシャル・バック・ライン (SBL / 体の背面)", stations: ["足底腱膜", "短趾屈筋", "腓腹筋", "アキレス腱", "ハムストリングス", "仙結節靭帯", "腰背筋膜", "脊柱起立筋", "頭板状筋", "帽状腱膜"] },
-  { lineId: "sfl", lineName: "スーパーフィシャル・フロント・ライン (SFL / 体の前面)", stations: ["短趾伸筋", "長趾伸筋", "前脛骨筋", "大腿四頭筋", "腹直筋", "胸骨筋", "胸鎖乳突筋", "頭頭筋膜"] },
-  { lineId: "ll", lineName: "ラテラル・ライン (LL / 体の側部)", stations: ["腓骨筋", "前脛骨筋靭帯", "大腿筋膜張筋", "大殿筋（上部）", "腸脛靭帯", "中殿筋", "外腹斜筋", "肋間筋", "頭板状筋", "胸鎖乳突筋"] },
-  { lineId: "spl", lineName: "スパイラル・ライン (SPL / 体をらせん状に巻く)", stations: ["頭板状筋", "菱形筋", "前鋸筋", "外腹斜筋", "内腹斜筋", "大腿筋膜張筋", "腸脛靭帯", "前脛骨筋", "長腓骨筋", "大腿二頭筋", "仙結節靭帯", "腰背筋膜", "脊柱起立筋"] },
-  { lineId: "dbal", lineName: "ディープ・バック・アーム・ライン (DBAL / 腕の深層背面)", stations: ["肩甲挙筋", "菱形筋", "回旋筋腱板（ローテーターカフ）", "上腕三頭筋", "尺骨骨膜", "尺側手根伸筋", "小指球筋"] },
-  { lineId: "sbal", lineName: "スーパーフィシャル・バック・アーム・ライン (SBAL / 腕の浅層背面)", stations: ["僧帽筋", "三角筋", "外側上腕筋間中隔", "伸筋群（前腕伸筋群）", "指伸筋"] },
-  { lineId: "dfal", lineName: "ディープ・フロント・アーム・ライン (DFAL / 腕の深層前面)", stations: ["小胸筋", "鎖骨下筋", "上腕二頭筋", "橈骨骨膜", "橈側手根屈筋", "母指球筋"] },
-  { lineId: "sfal", lineName: "スーパーフィシャル・フロント・アーム・ライン (SFAL / 腕の浅層前面)", stations: ["大胸筋", "広背筋", "内側上腕筋間中隔", "屈筋群（前腕屈筋群）", "手根管"] },
-  { lineId: "dfl", lineName: "ディープ・フロント・ライン (DFL / 体の深層・中心軸)", stations: ["後脛骨筋", "長趾屈筋", "膝窩筋", "内転筋群", "骨盤底筋群", "腸腰筋", "横隔膜", "心膜", "縦隔", "斜角筋", "舌骨下筋群", "頭長筋", "頭直筋"] }
+  {
+    lineId: "sbl",
+    lineName: "スーパーフィシャル・バック・ライン (SBL)",
+    stations: ["帽状腱膜", "後頭下筋群", "脊柱起立筋", "仙結節靭帯", "ハムストリングス", "腓腹筋", "足底腱膜"]
+  },
+  {
+    lineId: "sfl",
+    lineName: "スーパーフィシャル・フロント・ライン (SFL)",
+    stations: ["頭皮筋膜", "胸鎖乳突筋", "胸骨筋", "腹直筋", "大腿直筋", "前脛骨筋", "短趾伸筋"]
+  },
+  {
+    lineId: "ll",
+    lineName: "ラテラル・ライン (LL)",
+    stations: ["頭板状筋", "頸板状筋", "胸鎖乳突筋", "斜角筋", "肋間筋", "外腹斜筋", "内腹斜筋", "大殿筋", "中殿筋", "大腿筋膜張筋", "腸脛靭帯", "長腓骨筋", "短腓骨筋"]
+  },
+  {
+    lineId: "spl",
+    lineName: "スパイラル・ライン (SPL)",
+    stations: ["頭板状筋", "菱形筋", "前鋸筋", "外腹斜筋", "内腹斜筋", "大腿筋膜張筋", "腸脛靭帯", "前脛骨筋", "長腓骨筋", "大腿二頭筋", "仙結節靭帯", "腰背筋膜", "脊柱起立筋"]
+  },
+  {
+    lineId: "ffl",
+    lineName: "フロント・ファンクショナル・ライン (FFL)",
+    stations: ["大胸筋", "腹直筋", "内転筋群"]
+  },
+  {
+    lineId: "bfl",
+    lineName: "バック・ファンクショナル・ライン (BFL)",
+    stations: ["広背筋", "腰背筋膜", "大殿筋", "外側広筋"]
+  },
+  {
+    lineId: "dbal",
+    lineName: "ディープ・バック・アーム・ライン (DBAL)",
+    stations: ["肩甲挙筋", "菱形筋", "回旋筋腱板", "上腕三頭筋", "尺側手根伸筋", "小指球筋"]
+  },
+  {
+    lineId: "sbal",
+    lineName: "スーパーフィシャル・バック・アーム・ライン (SBAL)",
+    stations: ["僧帽筋", "三角筋", "外側上腕筋間中隔", "前腕伸筋群"]
+  },
+  {
+    lineId: "dfal",
+    lineName: "ディープ・フロント・アーム・ライン (DFAL)",
+    stations: ["小胸筋", "鎖骨下筋", "上腕二頭筋", "橈骨骨膜", "橈側手根屈筋", "母指球筋"]
+  },
+  {
+    lineId: "sfal",
+    lineName: "スーパーフィシャル・フロント・アーム・ライン (SFAL)",
+    stations: ["大胸筋", "広背筋", "内側上腕筋間中隔", "前腕屈筋群"]
+  },
+  {
+    lineId: "dfl",
+    lineName: "ディープ・フロント・ライン (DFL)",
+    stations: ["頭長筋", "頭直筋", "舌骨下筋群", "斜角筋", "心膜", "横隔膜", "腸腰筋", "骨盤底筋群", "内転筋群", "膝窩筋", "後脛骨筋", "長趾屈筋"]
+  }
 ];
 
 const selectEl = document.getElementById('muscle-select');
-const searchEl = document.getElementById('muscle-search');
-const resultsContainer = document.getElementById('results');
-
-// 全筋肉のリストをプルダウンに登録
 const allMuscles = new Set();
 anatomyTrainsData.forEach(line => line.stations.forEach(m => allMuscles.add(m)));
+
 Array.from(allMuscles).sort().forEach(muscle => {
     const option = document.createElement('option');
     option.value = muscle;
@@ -217,73 +203,34 @@ Array.from(allMuscles).sort().forEach(muscle => {
     selectEl.appendChild(option);
 });
 
-// 描画メインロジック
-function renderResults(targetMuscle) {
+selectEl.addEventListener('change', (e) => {
+    const selectedMuscle = e.target.value;
+    const resultsContainer = document.getElementById('results');
     resultsContainer.innerHTML = '';
-    if (!targetMuscle) {
-        resultsContainer.innerHTML = '<div class="no-result">検索または選択すると、つながりのあるラインが表示されます。</div>';
+
+    if (!selectedMuscle) {
+        resultsContainer.innerHTML = '<div class="no-result">筋肉を選択すると、つながりのあるラインと筋肉が路線図風に表示されます。</div>';
         return;
     }
 
-    let found = false;
     anatomyTrainsData.forEach(line => {
-        if (line.stations.includes(targetMuscle)) {
-            found = true;
+        if (line.stations.includes(selectedMuscle)) {
             const card = document.createElement('div');
             card.className = 'line-card';
-
             const lineNameDiv = document.createElement('div');
             lineNameDiv.className = 'line-name';
             lineNameDiv.textContent = line.lineName;
             card.appendChild(lineNameDiv);
 
-            const routeMapDiv = document.createElement('div');
-            routeMapDiv.className = 'route-map';
-
             line.stations.forEach(station => {
                 const stationDiv = document.createElement('div');
-                stationDiv.className = 'station';
-                if (station === targetMuscle) stationDiv.className += ' highlight';
+                stationDiv.className = 'station' + (station === selectedMuscle ? ' highlight' : '');
                 stationDiv.textContent = station;
-                routeMapDiv.appendChild(stationDiv);
+                card.appendChild(stationDiv);
             });
-
-            card.appendChild(routeMapDiv);
             resultsContainer.appendChild(card);
         }
     });
-
-    if (!found) {
-        resultsContainer.innerHTML = '<div class="no-result">一致する正確な筋肉名が見つかりませんでした。一覧から選ぶか、別のキーワードをお試しください。</div>';
-    }
-}
-
-// プルダウン選択時の挙動
-selectEl.addEventListener('change', (e) => {
-    if (e.target.value) {
-        searchEl.value = ''; // 検索窓をクリア
-        renderResults(e.target.value);
-    }
-});
-
-// キーワード入力時の挙動（部分一致）
-searchEl.addEventListener('input', (e) => {
-    const keyword = e.target.value.trim();
-    if (!keyword) {
-        renderResults('');
-        return;
-    }
-
-    // 入力された文字が含まれる筋肉を1つ探す（最初に見つかったもの）
-    const matchedMuscle = Array.from(allMuscles).find(muscle => muscle.includes(keyword));
-    
-    if (matchedMuscle) {
-        selectEl.value = matchedMuscle; // プルダウン側も連動させる
-        renderResults(matchedMuscle);
-    } else {
-        selectEl.value = "";
-        resultsContainer.innerHTML = '<div class="no-result">一致する筋肉が見つかりません。</div>';
-    }
 });
 </script>
 </body>
