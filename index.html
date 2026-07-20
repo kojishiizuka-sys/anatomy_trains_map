@@ -168,7 +168,7 @@
 
         #canvas-host {
             width: 100%;
-            height: 340px;
+            height: 510px;
             border-radius: 8px;
             overflow: hidden;
             background: #eef1f5;
@@ -182,6 +182,19 @@
             text-align: center;
             margin-top: 8px;
             display: none;
+        }
+
+        #reset-selection-btn {
+            display: block;
+            margin: 8px auto 0;
+            padding: 8px 16px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            color: var(--accent-color);
+            background: var(--accent-light);
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
         }
 
         #viewer-status {
@@ -229,7 +242,10 @@
     <div class="viewer-section">
         <div id="canvas-host"></div>
         <div id="viewer-status"></div>
-        <div id="tap-hint">モデルをタップすると、その部位の駅名とラインが表示されます</div>
+        <div id="tap-hint">
+            強調表示された筋だけタップできます。
+            <button id="reset-selection-btn" type="button">選択を解除</button>
+        </div>
     </div>
 
     <div class="credit-footer">
@@ -603,6 +619,9 @@ function resetColors(){
   });
 }
 
+// 現在タップ可能な筋(強調表示中の筋)の日本語名Set。null = 制限なし(どこでもタップ可)
+let tappableSet = null;
+
 // 駅名(グループ名) → 該当する241筋の日本語名リスト、の逆引き表
 const STATION_TO_MESHES = {};
 Object.entries(MESH_TO_STATION).forEach(([ja, labels]) => {
@@ -614,6 +633,7 @@ Object.entries(MESH_TO_STATION).forEach(([ja, labels]) => {
 
 // selectedSet: 強調表示する筋肉(日本語名)のSet, activeTrains: 色付けするトレインのSet
 function applyHighlight(selectedSet, activeTrains){
+  const newTappable = new Set(selectedSet);
   meshEntries.forEach(({ mesh, data }) => {
     const mat = mesh.material;
     if (selectedSet.has(data.ja_name)){
@@ -625,6 +645,7 @@ function applyHighlight(selectedSet, activeTrains){
       if (shared){
         mat.color.set(trainColorHex[shared] || neutralColor);
         mat.opacity = 0.55; mat.transparent = true;
+        newTappable.add(data.ja_name);
       } else {
         mat.color.set(neutralColor);
         mat.opacity = 0.1; mat.transparent = true;
@@ -633,7 +654,19 @@ function applyHighlight(selectedSet, activeTrains){
     mat.depthWrite = !mat.transparent;
     mat.needsUpdate = true;
   });
+  tappableSet = newTappable;
 }
+
+function clearSelection(){
+  tappableSet = null;
+  if (scene) resetColors();
+  showResultsFor([]);
+  const textSearch = document.getElementById('muscle-text-search');
+  const select = document.getElementById('muscle-select');
+  textSearch.value = '';
+  select.value = '';
+}
+document.getElementById('reset-selection-btn').addEventListener('click', clearSelection);
 
 function highlightByLabels(labels){
   if (!currentModel || !labels || labels.length === 0) return;
@@ -659,6 +692,9 @@ function onPointerTap(event){
   const hitMesh = hits[0].object;
   const data = findAncestorData(hitMesh);
   if (!data || !data.ja_name) return;
+
+  // 何かを選択中は、強調表示されている筋以外はタップしても反応しない
+  if (tappableSet !== null && !tappableSet.has(data.ja_name)) return;
 
   applyHighlight(new Set([data.ja_name]), new Set(data.trains || []));
 
