@@ -24,16 +24,28 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
+// 同一オリジン(index.html・manifest.json・glbなど自分のファイル)は
+// 「まずネットから最新版を取りに行き、失敗したら(オフライン時)キャッシュを使う」方式。
+// これにより、サーバー側を更新すればアプリ側も次に開いた時に自動で最新化される。
+// CDN(three.js等)は従来どおりネット優先・失敗時キャッシュ。
 self.addEventListener('fetch', (event) => {
-  // three.js等のCDN読み込みはネットワーク優先、それ以外はキャッシュ優先
   const url = new URL(event.request.url);
-  if (url.origin !== self.location.origin) {
+  const isSameOrigin = url.origin === self.location.origin;
+
+  if (!isSameOrigin) {
     event.respondWith(
       fetch(event.request).catch(() => caches.match(event.request))
     );
     return;
   }
+
   event.respondWith(
-    caches.match(event.request).then((cached) => cached || fetch(event.request))
+    fetch(event.request)
+      .then((res) => {
+        const resClone = res.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, resClone));
+        return res;
+      })
+      .catch(() => caches.match(event.request))
   );
 });
