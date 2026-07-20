@@ -4,79 +4,404 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Anatomy Trains Map</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2b6cb0">
+    <link rel="icon" href="icon-192.png">
+    <link rel="apple-touch-icon" href="icon-512.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="AnatomyMap">
     <style>
         :root {
             --bg-color: #f4f6f9;
             --card-bg: #ffffff;
             --text-color: #333333;
             --accent-color: #2b6cb0;
+            --accent-light: #ebf8ff;
             --border-color: #e2e8f0;
             --highlight-color: #e53e3e;
         }
+
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: sans-serif; background-color: var(--bg-color); padding: 20px; }
-        .container { max-width: 600px; margin: 0 auto; background: var(--card-bg); padding: 25px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+
+        h1 { font-size: 1.5rem; text-align: center; margin-bottom: 20px; color: var(--accent-color); }
+
         .search-box { margin-bottom: 25px; }
-        input, select { width: 100%; padding: 12px; border: 2px solid var(--border-color); border-radius: 8px; margin-bottom: 10px; }
-        .line-card { border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; margin-bottom: 20px; }
-        .line-name { font-weight: bold; color: var(--accent-color); margin-bottom: 15px; border-bottom: 2px solid var(--border-color); padding-bottom: 5px; }
-        
-        /* 路線図アイコンのスタイル */
-        .station { position: relative; padding-left: 25px; margin-bottom: 12px; font-size: 0.95rem; }
+
+        label { display: block; font-weight: bold; margin-bottom: 8px; font-size: 0.9rem; }
+
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 1rem;
+            background-color: #fff;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        select:focus { border-color: var(--accent-color); }
+
+        .result-section { margin-top: 20px; }
+
+        .line-card {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            background-color: #fff;
+        }
+
+        .line-name {
+            font-weight: bold;
+            color: var(--accent-color);
+            margin-bottom: 15px;
+            font-size: 1rem;
+            border-bottom: 2px solid var(--accent-light);
+            padding-bottom: 5px;
+        }
+
+        .station {
+            position: relative;
+            padding-left: 25px;
+            margin-bottom: 12px;
+            font-size: 0.95rem;
+        }
+
         .station::before {
-            content: ''; position: absolute; left: 5px; top: 6px; width: 10px; height: 10px;
-            border-radius: 50%; background-color: var(--border-color); border: 2px solid #fff;
-            box-shadow: 0 0 0 2px var(--border-color); z-index: 2;
+            content: '';
+            position: absolute;
+            left: 5px;
+            top: 6px;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: var(--border-color);
+            border: 2px solid #fff;
+            box-shadow: 0 0 0 2px var(--border-color);
+            z-index: 2;
         }
+
         .station::after {
-            content: ''; position: absolute; left: 9px; top: 16px; width: 2px;
-            height: calc(100% + 2px); background-color: var(--border-color); z-index: 1;
+            content: '';
+            position: absolute;
+            left: 9px;
+            top: 16px;
+            width: 2px;
+            height: calc(100% + 2px);
+            background-color: var(--border-color);
+            z-index: 1;
         }
+
         .station:last-child::after { display: none; }
-        
-        /* ハイライト（検索一致）用 */
+
         .station.highlight { font-weight: bold; color: var(--highlight-color); }
-        .station.highlight::before { background-color: var(--highlight-color); box-shadow: 0 0 0 2px var(--highlight-color); }
+
+        .station.highlight::before {
+            background-color: var(--highlight-color);
+            box-shadow: 0 0 0 2px var(--highlight-color);
+        }
+
+        .no-result { text-align: center; color: #718096; font-size: 0.95rem; margin-top: 20px; }
+
+        .search-input-wrap { position: relative; margin-bottom: 12px; }
+
+        #muscle-text-search {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        #muscle-text-search:focus { border-color: var(--accent-color); }
+
+        .suggestions {
+            position: absolute;
+            top: calc(100% + 4px);
+            left: 0;
+            right: 0;
+            background: #fff;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            max-height: 220px;
+            overflow-y: auto;
+            z-index: 10;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+        }
+
+        .suggestions:empty { display: none; }
+
+        .suggestion-item {
+            padding: 10px 12px;
+            font-size: 0.95rem;
+            cursor: pointer;
+        }
+
+        .suggestion-item:hover, .suggestion-item.active {
+            background-color: var(--accent-light);
+        }
+
+        .suggestion-item + .suggestion-item { border-top: 1px solid var(--border-color); }
+
+        .viewer-section { margin-top: 20px; }
+
+        .file-upload-box {
+            border: 2px dashed var(--border-color);
+            border-radius: 8px;
+            padding: 16px;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .file-upload-box label {
+            display: inline-block;
+            cursor: pointer;
+            color: var(--accent-color);
+            font-weight: bold;
+            margin: 0;
+        }
+
+        #viewer-filename { font-size: 0.85rem; color: #718096; margin-top: 6px; font-weight: normal; }
+
+        #canvas-host {
+            width: 100%;
+            height: 340px;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #eef1f5;
+            position: relative;
+            display: none;
+        }
+
+        #tap-hint {
+            font-size: 0.85rem;
+            color: #718096;
+            text-align: center;
+            margin-top: 8px;
+            display: none;
+        }
     </style>
-    <link rel="manifest" href="manifest.json">
 </head>
 <body>
 
 <div class="container">
     <h1>Anatomy Trains Map</h1>
+    
     <div class="search-box">
-        <label>筋肉を選択または検索:</label>
+        <label for="muscle-text-search">部分一致で検索:</label>
+        <div class="search-input-wrap">
+            <input type="text" id="muscle-text-search" placeholder="例: 三頭筋" autocomplete="off" />
+            <div id="search-suggestions" class="suggestions"></div>
+        </div>
+
+        <label for="muscle-select">または一覧から選択:</label>
         <select id="muscle-select">
             <option value="">-- 筋肉を選択してください --</option>
         </select>
-        <input type="text" id="muscle-search" placeholder="筋肉名を入力して検索...">
     </div>
-    <div id="results"></div>
+
+    <div id="results" class="result-section">
+        <div class="no-result">筋肉を選択すると、つながりのあるラインと筋肉が路線図風に表示されます。</div>
+    </div>
+
+    <div class="viewer-section">
+        <div class="file-upload-box">
+            <input type="file" id="glb-file-input" accept=".glb" style="display:none" />
+            <label for="glb-file-input">📦 3Dモデル(GLB)を開く</label>
+            <div id="viewer-filename"></div>
+        </div>
+        <div id="canvas-host"></div>
+        <div id="tap-hint">モデルをタップすると、その部位の駅名とラインが表示されます</div>
+    </div>
 </div>
 
 <script>
-// データ定義（先ほどの最新版をそのまま使用）
 const anatomyTrainsData = [
-  { lineName: "スーパーフィシャル・バック・ライン (SBL)", stations: ["帽状腱膜", "後頭下筋群", "脊柱起立筋", "仙結節靭帯", "ハムストリングス", "腓腹筋", "足底腱膜"] },
-  { lineName: "スーパーフィシャル・フロント・ライン (SFL)", stations: ["頭皮筋膜", "胸鎖乳突筋", "胸骨筋", "腹直筋", "大腿直筋", "前脛骨筋", "短趾伸筋"] },
-  { lineName: "ラテラル・ライン (LL)", stations: ["頭板状筋", "頸板状筋", "胸鎖乳突筋", "斜角筋", "肋間筋", "外腹斜筋", "内腹斜筋", "大殿筋", "中殿筋", "大腿筋膜張筋", "腸脛靭帯", "長腓骨筋", "短腓骨筋"] },
-  { lineName: "スパイラル・ライン (SPL)", stations: ["頭板状筋", "菱形筋", "前鋸筋", "外腹斜筋", "内腹斜筋", "大腿筋膜張筋", "腸脛靭帯", "前脛骨筋", "長腓骨筋", "大腿二頭筋", "仙結節靭帯", "腰背筋膜", "脊柱起立筋"] },
-  { lineName: "フロント・ファンクショナル・ライン (FFL)", stations: ["大胸筋", "腹直筋", "内転筋群"] },
-  { lineName: "バック・ファンクショナル・ライン (BFL)", stations: ["広背筋", "腰背筋膜", "大殿筋", "外側広筋"] },
-  { lineName: "ディープ・バック・アーム・ライン (DBAL)", stations: ["肩甲挙筋", "菱形筋", "回旋筋腱板", "上腕三頭筋", "尺側手根伸筋", "小指球筋"] },
-  { lineName: "スーパーフィシャル・バック・アーム・ライン (SBAL)", stations: ["僧帽筋", "三角筋", "外側上腕筋間中隔", "前腕伸筋群"] },
-  { lineName: "ディープ・フロント・アーム・ライン (DFAL)", stations: ["小胸筋", "鎖骨下筋", "上腕二頭筋", "橈骨骨膜", "橈側手根屈筋", "母指球筋"] },
-  { lineName: "スーパーフィシャル・フロント・ライン (SFAL)", stations: ["大胸筋", "広背筋", "内側上腕筋間中隔", "前腕屈筋群"] },
-  { lineName: "ディープ・フロント・ライン (DFL)", stations: ["頭長筋", "頭直筋", "舌骨下筋群", "斜角筋", "心膜", "横隔膜", "腸腰筋", "骨盤底筋群", "内転筋群", "膝窩筋", "後脛骨筋", "長趾屈筋"] }
+  {
+    "lineId": "sbl",
+    "lineName": "スーパーフィシャル・バック・ライン (SBL)",
+    "stations": [
+      "帽状腱膜",
+      "後頭下筋群",
+      "脊柱起立筋",
+      "仙結節靭帯",
+      "ハムストリングス",
+      "腓腹筋",
+      "足底腱膜"
+    ]
+  },
+  {
+    "lineId": "sfl",
+    "lineName": "スーパーフィシャル・フロント・ライン (SFL)",
+    "stations": [
+      "帽状腱膜",
+      "胸鎖乳突筋",
+      "胸筋筋膜",
+      "腹直筋",
+      "外腹斜筋",
+      "内腹斜筋",
+      "大腿直筋",
+      "前脛骨筋",
+      "長趾伸筋",
+      "短趾伸筋"
+    ]
+  },
+  {
+    "lineId": "ll",
+    "lineName": "ラテラル・ライン (LL)",
+    "stations": [
+      "胸鎖乳突筋",
+      "頸板状筋",
+      "頭板状筋",
+      "斜角筋群",
+      "最内肋間筋",
+      "内肋間筋",
+      "外肋間筋",
+      "中殿筋",
+      "大殿筋",
+      "大腿筋膜張筋",
+      "腸脛靱帯",
+      "長腓骨筋",
+      "短腓骨筋"
+    ]
+  },
+  {
+    "lineId": "spl",
+    "lineName": "スパイラル・ライン (SPL)",
+    "stations": [
+      "頭板状筋",
+      "菱形筋",
+      "前鋸筋",
+      "外腹斜筋",
+      "内腹斜筋",
+      "大腿筋膜張筋",
+      "腸脛靱帯",
+      "前脛骨筋",
+      "長腓骨筋",
+      "大腿二頭筋",
+      "仙結節靭帯",
+      "腰背筋膜",
+      "脊柱起立筋"
+    ]
+  },
+  {
+    "lineId": "dfal",
+    "lineName": "ディープ・フロント・アーム・ライン (DFAL)",
+    "stations": [
+      "小胸筋",
+      "鎖骨下筋",
+      "上腕二頭筋",
+      "手関節側副靭帯",
+      "母指球筋"
+    ]
+  },
+  {
+    "lineId": "sfal",
+    "lineName": "スーパーフィシャル・フロント・アーム・ライン (SFAL)",
+    "stations": [
+      "大胸筋",
+      "広背筋",
+      "内側上腕筋間中隔",
+      "前腕屈筋群"
+    ]
+  },
+  {
+    "lineId": "dbal",
+    "lineName": "ディープ・バック・アーム・ライン (DBAL)",
+    "stations": [
+      "肩甲挙筋",
+      "菱形筋",
+      "回旋筋腱板",
+      "大円筋",
+      "上腕三頭筋",
+      "手関節側副靭帯",
+      "小指球筋"
+    ]
+  },
+  {
+    "lineId": "sbal",
+    "lineName": "スーパーフィシャル・バック・アーム・ライン (SBAL)",
+    "stations": [
+      "僧帽筋",
+      "三角筋",
+      "外側上腕筋間中隔",
+      "前腕伸筋群"
+    ]
+  },
+  {
+    "lineId": "bfl",
+    "lineName": "バック・ファンクショナル・ライン (BFL)",
+    "stations": [
+      "広背筋",
+      "腰背筋膜",
+      "大殿筋",
+      "外側広筋"
+    ]
+  },
+  {
+    "lineId": "ffl",
+    "lineName": "フロント・ファンクショナル・ライン (FFL)",
+    "stations": [
+      "大胸筋",
+      "腹直筋",
+      "内転筋群"
+    ]
+  },
+  {
+    "lineId": "ifl",
+    "lineName": "イプシラテラル・ファンクショナル・ライン (IFL)",
+    "stations": [
+      "広背筋",
+      "外腹斜筋",
+      "縫工筋"
+    ]
+  },
+  {
+    "lineId": "dfl",
+    "lineName": "ディープ・フロント・ライン (DFL)",
+    "stations": [
+      "斜角筋群",
+      "舌骨下筋群",
+      "頭直筋群",
+      "頭長筋",
+      "横隔膜",
+      "腸腰筋",
+      "腸骨尾骨筋",
+      "恥骨肛門筋",
+      "恥骨尾骨筋",
+      "内転筋群",
+      "膝窩筋",
+      "長趾屈筋",
+      "後脛骨筋"
+    ]
+  }
 ];
 
 const selectEl = document.getElementById('muscle-select');
-const searchEl = document.getElementById('muscle-search');
-const resultsContainer = document.getElementById('results');
-
-// セレクトボックス初期化
 const allMuscles = new Set();
 anatomyTrainsData.forEach(line => line.stations.forEach(m => allMuscles.add(m)));
+
 Array.from(allMuscles).sort().forEach(muscle => {
     const option = document.createElement('option');
     option.value = muscle;
@@ -84,36 +409,307 @@ Array.from(allMuscles).sort().forEach(muscle => {
     selectEl.appendChild(option);
 });
 
-function updateResults(searchTerm) {
+function showResultsFor(selectedNames) {
+    const names = Array.isArray(selectedNames) ? selectedNames : [selectedNames];
+    const nameSet = new Set(names.filter(Boolean));
+    const resultsContainer = document.getElementById('results');
     resultsContainer.innerHTML = '';
-    if (!searchTerm) return;
-    
+
+    if (nameSet.size === 0) {
+        resultsContainer.innerHTML = '<div class="no-result">筋肉を選択すると、つながりのあるラインと筋肉が路線図風に表示されます。</div>';
+        return;
+    }
+
     anatomyTrainsData.forEach(line => {
-        if (line.stations.some(s => s.includes(searchTerm))) {
+        const matchedStation = line.stations.find(s => nameSet.has(s));
+        if (matchedStation) {
             const card = document.createElement('div');
             card.className = 'line-card';
-            card.innerHTML = `<div class="line-name">${line.lineName}</div>`;
-            
+            const lineNameDiv = document.createElement('div');
+            lineNameDiv.className = 'line-name';
+            lineNameDiv.textContent = line.lineName;
+            card.appendChild(lineNameDiv);
+
             line.stations.forEach(station => {
                 const stationDiv = document.createElement('div');
-                stationDiv.className = 'station' + (station.includes(searchTerm) ? ' highlight' : '');
+                stationDiv.className = 'station' + (nameSet.has(station) ? ' highlight' : '');
                 stationDiv.textContent = station;
                 card.appendChild(stationDiv);
             });
             resultsContainer.appendChild(card);
         }
     });
+
+    if (resultsContainer.innerHTML === '') {
+        resultsContainer.innerHTML = '<div class="no-result">該当するラインが見つかりませんでした。</div>';
+    }
 }
 
 selectEl.addEventListener('change', (e) => {
-    searchEl.value = e.target.value;
-    updateResults(e.target.value);
+    showResultsFor(e.target.value);
+    if (window.highlightMuscleInModel) window.highlightMuscleInModel([e.target.value]);
 });
 
-searchEl.addEventListener('input', (e) => {
-    selectEl.value = "";
-    updateResults(e.target.value);
+// ---- 部分一致検索 ----
+const textSearchEl = document.getElementById('muscle-text-search');
+const suggestionsEl = document.getElementById('search-suggestions');
+const muscleNames = Array.from(allMuscles).sort();
+let activeIndex = -1;
+
+function renderSuggestions(matches) {
+    suggestionsEl.innerHTML = '';
+    activeIndex = -1;
+    matches.forEach((name, i) => {
+        const item = document.createElement('div');
+        item.className = 'suggestion-item';
+        item.textContent = name;
+        item.addEventListener('click', () => selectMuscle(name));
+        suggestionsEl.appendChild(item);
+    });
+}
+
+function selectMuscle(name) {
+    textSearchEl.value = name;
+    suggestionsEl.innerHTML = '';
+    selectEl.value = name;
+    showResultsFor(name);
+    if (window.highlightMuscleInModel) window.highlightMuscleInModel([name]);
+}
+
+textSearchEl.addEventListener('input', (e) => {
+    const q = e.target.value.trim();
+    if (!q) { suggestionsEl.innerHTML = ''; return; }
+    const matches = muscleNames.filter(name => name.includes(q));
+    renderSuggestions(matches);
 });
+
+textSearchEl.addEventListener('keydown', (e) => {
+    const items = Array.from(suggestionsEl.children);
+    if (items.length === 0) return;
+    if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        activeIndex = Math.min(activeIndex + 1, items.length - 1);
+    } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        activeIndex = Math.max(activeIndex - 1, 0);
+    } else if (e.key === 'Enter') {
+        e.preventDefault();
+        if (activeIndex >= 0) selectMuscle(items[activeIndex].textContent);
+        return;
+    } else {
+        return;
+    }
+    items.forEach((item, i) => item.classList.toggle('active', i === activeIndex));
+    items[activeIndex].scrollIntoView({ block: 'nearest' });
+});
+
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('.search-input-wrap')) {
+        suggestionsEl.innerHTML = '';
+    }
+});
+</script>
+
+<script type="importmap">
+{"imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+// 241筋の日本語名(左右つき) → 路線図の「駅名」対応表
+const MESH_TO_STATION = {"帽状腱膜(右)":["帽状腱膜"],"帽状腱膜(左)":["帽状腱膜"],"胸鎖乳突筋(右)":["胸鎖乳突筋"],"胸鎖乳突筋(左)":["胸鎖乳突筋"],"肩甲舌骨筋(右)":["舌骨下筋群"],"肩甲舌骨筋(左)":["舌骨下筋群"],"胸骨舌骨筋(右)":["舌骨下筋群"],"胸骨甲状筋(右)":["舌骨下筋群"],"甲状舌骨筋(右)":["舌骨下筋群"],"胸骨舌骨筋(左)":["舌骨下筋群"],"胸骨甲状筋(左)":["舌骨下筋群"],"甲状舌骨筋(左)":["舌骨下筋群"],"中斜角筋(右)":["斜角筋群"],"後斜角筋(右)":["斜角筋群"],"前斜角筋(右)":["斜角筋群"],"頭長筋(右)":["頭長筋"],"前頭直筋(右)":["頭直筋群"],"外側頭直筋(右)":["頭直筋群"],"中斜角筋(左)":["斜角筋群"],"後斜角筋(左)":["斜角筋群"],"前斜角筋(左)":["斜角筋群"],"頭長筋(左)":["頭長筋"],"前頭直筋(左)":["頭直筋群"],"外側頭直筋(左)":["頭直筋群"],"胸腰筋膜(後葉)(右)":["腰背筋膜"],"胸腰筋膜(中葉)(右)":["腰背筋膜"],"胸腰筋膜(前葉)(右)":["腰背筋膜"],"胸腰筋膜(後葉)(左)":["腰背筋膜"],"胸腰筋膜(中葉)(左)":["腰背筋膜"],"胸腰筋膜(前葉)(左)":["腰背筋膜"],"下頭斜筋(右)":["後頭下筋群"],"上頭斜筋(右)":["後頭下筋群"],"大後頭直筋(右)":["後頭下筋群"],"小後頭直筋(右)":["後頭下筋群"],"下頭斜筋(左)":["後頭下筋群"],"上頭斜筋(左)":["後頭下筋群"],"大後頭直筋(左)":["後頭下筋群"],"小後頭直筋(左)":["後頭下筋群"],"腸肋筋(腰部)(右)":["脊柱起立筋"],"腸肋筋(胸部)(右)":["脊柱起立筋"],"腸肋筋(頸部)(右)":["脊柱起立筋"],"腸肋筋(腰部)(左)":["脊柱起立筋"],"腸肋筋(胸部)(左)":["脊柱起立筋"],"腸肋筋(頸部)(左)":["脊柱起立筋"],"最長筋(胸部)(右)":["脊柱起立筋"],"最長筋(胸部)(左)":["脊柱起立筋"],"最長筋(頭部)(右)":["脊柱起立筋"],"最長筋(頸部)(右)":["脊柱起立筋"],"最長筋(頭部)(左)":["脊柱起立筋"],"最長筋(頸部)(左)":["脊柱起立筋"],"棘筋(頭部)(右)":["脊柱起立筋"],"棘筋(頸部)(右)":["脊柱起立筋"],"棘筋(胸部)(右)":["脊柱起立筋"],"棘筋(頭部)(左)":["脊柱起立筋"],"棘筋(頸部)(左)":["脊柱起立筋"],"棘筋(胸部)(左)":["脊柱起立筋"],"頭板状筋(右)":["頭板状筋"],"頸板状筋(右)":["頸板状筋"],"頭板状筋(左)":["頭板状筋"],"頸板状筋(左)":["頸板状筋"],"僧帽筋(上行部)(右)":["僧帽筋"],"僧帽筋(下行部)(右)":["僧帽筋"],"僧帽筋(水平部)(右)":["僧帽筋"],"僧帽筋(上行部)(左)":["僧帽筋"],"僧帽筋(下行部)(左)":["僧帽筋"],"僧帽筋(水平部)(左)":["僧帽筋"],"肩甲挙筋(右)":["肩甲挙筋"],"大菱形筋(右)":["菱形筋"],"小菱形筋(右)":["菱形筋"],"広背筋(右)":["広背筋"],"肩甲挙筋(左)":["肩甲挙筋"],"大菱形筋(左)":["菱形筋"],"小菱形筋(左)":["菱形筋"],"広背筋(左)":["広背筋"],"大胸筋(鎖骨部)(右)":["大胸筋"],"大胸筋(胸肋部)(右)":["大胸筋"],"(大胸筋・腹部)(右)":["大胸筋"],"大胸筋(鎖骨部)(左)":["大胸筋"],"大胸筋(胸肋部)(左)":["大胸筋"],"(大胸筋・腹部)(左)":["大胸筋"],"小胸筋(右)":["小胸筋"],"外肋間筋(右)":["外肋間筋"],"内肋間筋(右)":["内肋間筋"],"前鋸筋(右)":["前鋸筋"],"最内肋間筋(右)":["最内肋間筋"],"鎖骨下筋(右)":["鎖骨下筋"],"小胸筋(左)":["小胸筋"],"外肋間筋(左)":["外肋間筋"],"内肋間筋(左)":["内肋間筋"],"前鋸筋(左)":["前鋸筋"],"最内肋間筋(左)":["最内肋間筋"],"鎖骨下筋(左)":["鎖骨下筋"],"胸筋筋膜(右)":["胸筋筋膜"],"胸筋筋膜(左)":["胸筋筋膜"],"横隔膜":["横隔膜"],"腹直筋(右)":["腹直筋"],"腹直筋(左)":["腹直筋"],"外腹斜筋(右)":["外腹斜筋"],"外腹斜筋(左)":["外腹斜筋"],"内腹斜筋(右)":["内腹斜筋"],"内腹斜筋(左)":["内腹斜筋"],"腸骨尾骨筋(右)":["腸骨尾骨筋"],"恥骨肛門筋(右)":["恥骨肛門筋"],"恥骨尾骨筋(右)":["恥骨尾骨筋"],"腸骨尾骨筋(左)":["腸骨尾骨筋"],"恥骨肛門筋(左)":["恥骨肛門筋"],"恥骨尾骨筋(左)":["恥骨尾骨筋"],"三角筋(肩峰部)(右)":["三角筋"],"三角筋(鎖骨部)(右)":["三角筋"],"三角筋(肩甲棘部)(右)":["三角筋"],"三角筋(肩峰部)(左)":["三角筋"],"三角筋(鎖骨部)(左)":["三角筋"],"三角筋(肩甲棘部)(左)":["三角筋"],"肩甲下筋(右)":["回旋筋腱板"],"棘上筋(右)":["回旋筋腱板"],"小円筋(右)":["回旋筋腱板"],"棘下筋(右)":["回旋筋腱板"],"肩甲下筋(左)":["回旋筋腱板"],"棘上筋(左)":["回旋筋腱板"],"小円筋(左)":["回旋筋腱板"],"棘下筋(左)":["回旋筋腱板"],"大円筋(右)":["大円筋"],"大円筋(左)":["大円筋"],"上腕二頭筋(長頭)(右)":["上腕二頭筋"],"上腕二頭筋(短頭)(右)":["上腕二頭筋"],"上腕二頭筋(長頭)(左)":["上腕二頭筋"],"上腕二頭筋(短頭)(左)":["上腕二頭筋"],"上腕三頭筋(内側頭)(右)":["上腕三頭筋"],"上腕三頭筋(外側頭)(右)":["上腕三頭筋"],"上腕三頭筋(長頭)(右)":["上腕三頭筋"],"上腕三頭筋(内側頭)(左)":["上腕三頭筋"],"上腕三頭筋(外側頭)(左)":["上腕三頭筋"],"上腕三頭筋(長頭)(左)":["上腕三頭筋"],"尺側手根屈筋(上腕頭)(右)":["前腕屈筋群"],"尺側手根屈筋(尺骨頭)(右)":["前腕屈筋群"],"尺側手根屈筋(上腕頭)(左)":["前腕屈筋群"],"尺側手根屈筋(尺骨頭)(左)":["前腕屈筋群"],"浅指屈筋(上腕尺骨頭)(右)":["前腕屈筋群"],"浅指屈筋(上腕尺骨頭)(左)":["前腕屈筋群"],"橈側手根屈筋(右)":["前腕屈筋群"],"長掌筋(右)":["前腕屈筋群"],"橈側手根屈筋(左)":["前腕屈筋群"],"長掌筋(左)":["前腕屈筋群"],"浅指屈筋(橈骨頭)(右)":["前腕屈筋群"],"深指屈筋(右)":["前腕屈筋群"],"浅指屈筋(橈骨頭)(左)":["前腕屈筋群"],"深指屈筋(左)":["前腕屈筋群"],"総指伸筋(右)":["前腕伸筋群"],"総指伸筋(左)":["前腕伸筋群"],"尺側手根伸筋(尺骨頭)(右)":["前腕伸筋群"],"尺側手根伸筋(上腕頭)(右)":["前腕伸筋群"],"尺側手根伸筋(尺骨頭)(左)":["前腕伸筋群"],"尺側手根伸筋(上腕頭)(左)":["前腕伸筋群"],"長橈側手根伸筋(右)":["前腕伸筋群"],"短橈側手根伸筋(右)":["前腕伸筋群"],"長橈側手根伸筋(左)":["前腕伸筋群"],"短橈側手根伸筋(左)":["前腕伸筋群"],"短母指屈筋(浅頭)(右)":["母指球筋"],"短母指屈筋(深頭)(右)":["母指球筋"],"短母指屈筋(浅頭)(左)":["母指球筋"],"短母指屈筋(深頭)(左)":["母指球筋"],"母指内転筋(斜頭)(右)":["母指球筋"],"母指内転筋(横頭)(右)":["母指球筋"],"母指内転筋(斜頭)(左)":["母指球筋"],"母指内転筋(横頭)(左)":["母指球筋"],"短母指外転筋(右)":["母指球筋"],"母指対立筋(右)":["母指球筋"],"小指外転筋(手)(右)":["小指球筋"],"短小指屈筋(手)(右)":["小指球筋"],"小指対立筋(手)(右)":["小指球筋"],"短母指外転筋(左)":["母指球筋"],"母指対立筋(左)":["母指球筋"],"小指外転筋(手)(左)":["小指球筋"],"短小指屈筋(手)(左)":["小指球筋"],"小指対立筋(手)(左)":["小指球筋"],"上腕内側筋間中隔(右)":["内側上腕筋間中隔"],"上腕外側筋間中隔(右)":["外側上腕筋間中隔"],"上腕内側筋間中隔(左)":["内側上腕筋間中隔"],"上腕外側筋間中隔(左)":["外側上腕筋間中隔"],"腸骨筋(右)":["腸腰筋"],"大腰筋(右)":["腸腰筋"],"腸骨筋(左)":["腸腰筋"],"大腰筋(左)":["腸腰筋"],"中殿筋(右)":["中殿筋"],"大殿筋(右)":["大殿筋"],"大腿筋膜張筋(右)":["大腿筋膜張筋"],"中殿筋(左)":["中殿筋"],"大殿筋(左)":["大殿筋"],"大腿筋膜張筋(左)":["大腿筋膜張筋"],"大腿直筋(右)":["大腿直筋"],"外側広筋(右)":["外側広筋"],"大腿直筋(左)":["大腿直筋"],"外側広筋(左)":["外側広筋"],"縫工筋(右)":["縫工筋"],"縫工筋(左)":["縫工筋"],"大内転筋(右)":["内転筋群"],"長内転筋(右)":["内転筋群"],"短内転筋(右)":["内転筋群"],"(最小内転筋)(右)":["内転筋群"],"大内転筋(左)":["内転筋群"],"長内転筋(左)":["内転筋群"],"短内転筋(左)":["内転筋群"],"(最小内転筋)(左)":["内転筋群"],"大腿二頭筋(長頭)(右)":["ハムストリングス","大腿二頭筋"],"大腿二頭筋(短頭)(右)":["ハムストリングス","大腿二頭筋"],"大腿二頭筋(長頭)(左)":["ハムストリングス","大腿二頭筋"],"大腿二頭筋(短頭)(左)":["ハムストリングス","大腿二頭筋"],"半膜様筋(右)":["ハムストリングス"],"半腱様筋(右)":["ハムストリングス"],"半膜様筋(左)":["ハムストリングス"],"半腱様筋(左)":["ハムストリングス"],"長趾伸筋(右)":["長趾伸筋"],"長趾伸筋(左)":["長趾伸筋"],"前脛骨筋(右)":["前脛骨筋"],"前脛骨筋(左)":["前脛骨筋"],"長腓骨筋(右)":["長腓骨筋"],"短腓骨筋(右)":["短腓骨筋"],"長腓骨筋(左)":["長腓骨筋"],"短腓骨筋(左)":["短腓骨筋"],"腓腹筋(外側頭)(右)":["腓腹筋"],"腓腹筋(内側頭)(右)":["腓腹筋"],"腓腹筋(外側頭)(左)":["腓腹筋"],"腓腹筋(内側頭)(左)":["腓腹筋"],"長趾屈筋(右)":["長趾屈筋"],"膝窩筋(右)":["膝窩筋"],"後脛骨筋(右)":["後脛骨筋"],"長趾屈筋(左)":["長趾屈筋"],"膝窩筋(左)":["膝窩筋"],"後脛骨筋(左)":["後脛骨筋"],"短趾伸筋(右)":["短趾伸筋"],"短趾伸筋(左)":["短趾伸筋"],"腸脛靱帯(右)":["腸脛靱帯"],"腸脛靱帯(左)":["腸脛靱帯"],"足底腱膜(右)":["足底腱膜"],"足底腱膜(左)":["足底腱膜"],"仙結節靭帯(右)":["仙結節靭帯"],"仙結節靭帯(左)":["仙結節靭帯"],"内側側副靭帯（右）":["手関節側副靭帯"],"内側側副靭帯（左）":["手関節側副靭帯"],"外側側副靭帯（右）":["手関節側副靭帯"],"外側側副靭帯（左）":["手関節側副靭帯"]};
+
+const neutralColor = '#c9c7bd';
+const tapColor = '#1a1a1a';
+const trainColorHex = {
+  SBL:'#7F77DD', SFL:'#1D9E75', LL:'#D85A30', 'SPL(R)':'#D4537E', 'SPL(L)':'#993556',
+  DFAL:'#378ADD', SFAL:'#639922', DBAL:'#BA7517', SBAL:'#E24B4A',
+  BFL:'#888780', FFL:'#534AB7', IFL:'#0F6E56', DFL:'#993C1D'
+};
+function norm(code){ return code.replace(/[（）]/g, m => m === '（' ? '(' : ')').trim(); }
+function extrasToTrains(extras){
+  if (!extras || extras.trains === undefined) return [];
+  return (extras.trains || '').split(',').map(s=>norm(s.trim())).filter(Boolean);
+}
+function findAncestorData(node){
+  let cur = node;
+  while (cur){
+    if (cur.userData && cur.userData.ja_name !== undefined) return cur.userData;
+    cur = cur.parent;
+  }
+  return null;
+}
+
+let scene, camera, renderer, controls, host, currentModel = null, raycaster, pointer;
+let meshEntries = [];
+
+function initThree(){
+  host = document.getElementById('canvas-host');
+  host.style.display = 'block';
+  scene = new THREE.Scene();
+  camera = new THREE.PerspectiveCamera(45, host.clientWidth / host.clientHeight, 0.01, 100);
+  renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(host.clientWidth, host.clientHeight);
+  host.appendChild(renderer.domElement);
+  controls = new OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  raycaster = new THREE.Raycaster();
+  pointer = new THREE.Vector2();
+
+  renderer.domElement.addEventListener('pointerup', onPointerTap);
+
+  window.addEventListener('resize', () => {
+    if (!host.clientWidth) return;
+    camera.aspect = host.clientWidth / host.clientHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(host.clientWidth, host.clientHeight);
+  });
+
+  animate();
+}
+
+function animate(){ requestAnimationFrame(animate); controls.update(); renderer.render(scene, camera); }
+
+function frameObject(object3d){
+  const box = new THREE.Box3().setFromObject(object3d);
+  const size = box.getSize(new THREE.Vector3());
+  const center = box.getCenter(new THREE.Vector3());
+  const radius = size.length() * 0.5;
+  camera.position.copy(center).add(new THREE.Vector3(0, 0, radius * 2.2));
+  camera.near = radius / 100; camera.far = radius * 20;
+  camera.updateProjectionMatrix();
+  controls.target.copy(center); controls.update();
+}
+
+function resetColors(){
+  meshEntries.forEach(({ mesh }) => {
+    mesh.material.color.set(neutralColor);
+    mesh.material.opacity = 1;
+    mesh.material.transparent = false;
+    mesh.material.needsUpdate = true;
+  });
+}
+
+// 駅名(グループ名) → 該当する241筋の日本語名リスト、の逆引き表
+const STATION_TO_MESHES = {};
+Object.entries(MESH_TO_STATION).forEach(([ja, labels]) => {
+  labels.forEach(l => {
+    if (!STATION_TO_MESHES[l]) STATION_TO_MESHES[l] = [];
+    STATION_TO_MESHES[l].push(ja);
+  });
+});
+
+// selectedSet: 強調表示する筋肉(日本語名)のSet, activeTrains: 色付けするトレインのSet
+function applyHighlight(selectedSet, activeTrains){
+  meshEntries.forEach(({ mesh, data }) => {
+    const mat = mesh.material;
+    if (selectedSet.has(data.ja_name)){
+      mat.color.set(tapColor);
+      mat.opacity = 1; mat.transparent = false;
+    } else {
+      const myTrains = data.trains || [];
+      const shared = myTrains.find(t => activeTrains.has(t));
+      if (shared){
+        mat.color.set(trainColorHex[shared] || neutralColor);
+        mat.opacity = 0.55; mat.transparent = true;
+      } else {
+        mat.color.set(neutralColor);
+        mat.opacity = 0.1; mat.transparent = true;
+      }
+    }
+    mat.depthWrite = !mat.transparent;
+    mat.needsUpdate = true;
+  });
+}
+
+function highlightByLabels(labels){
+  if (!currentModel || !labels || labels.length === 0) return;
+  const jaNames = new Set();
+  labels.forEach(l => (STATION_TO_MESHES[l] || []).forEach(ja => jaNames.add(ja)));
+  if (jaNames.size === 0) return;
+  const activeTrains = new Set();
+  meshEntries.forEach(({ data }) => {
+    if (jaNames.has(data.ja_name)) (data.trains || []).forEach(t => activeTrains.add(t));
+  });
+  applyHighlight(jaNames, activeTrains);
+}
+window.highlightMuscleInModel = highlightByLabels;
+
+function onPointerTap(event){
+  if (!currentModel) return;
+  const rect = renderer.domElement.getBoundingClientRect();
+  pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+  pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+  raycaster.setFromCamera(pointer, camera);
+  const hits = raycaster.intersectObjects(currentModel.children, true);
+  if (hits.length === 0) return;
+  const hitMesh = hits[0].object;
+  const data = findAncestorData(hitMesh);
+  if (!data || !data.ja_name) return;
+
+  applyHighlight(new Set([data.ja_name]), new Set(data.trains || []));
+
+  const labels = MESH_TO_STATION[data.ja_name] || [];
+  showResultsFor(labels);
+
+  const textSearch = document.getElementById('muscle-text-search');
+  const select = document.getElementById('muscle-select');
+  if (labels.length){
+    textSearch.value = labels[0];
+    select.value = labels[0];
+  }
+}
+
+function loadGLBFromArrayBuffer(buffer, label){
+  if (!scene) initThree();
+  new GLTFLoader().parse(buffer, '', gltf => {
+    if (currentModel){ scene.remove(currentModel); currentModel = null; }
+    meshEntries = [];
+    gltf.scene.traverse(node => {
+      if (!node.isMesh) return;
+      node.material = new THREE.MeshBasicMaterial({ color: neutralColor, side: THREE.DoubleSide });
+      const data = findAncestorData(node) || { ja_name: null, trains: [] };
+      if (typeof data.trains === 'string') data.trains = extrasToTrains(data);
+      meshEntries.push({ mesh: node, data });
+    });
+    currentModel = gltf.scene;
+    scene.add(currentModel);
+    frameObject(currentModel);
+    document.getElementById('viewer-filename').textContent = label + '（' + meshEntries.length + '件）';
+    document.getElementById('tap-hint').style.display = 'block';
+  }, err => {
+    document.getElementById('viewer-filename').textContent = '読み込みエラー: ' + err.message;
+  });
+}
+
+document.getElementById('glb-file-input').addEventListener('change', function(e){
+  const file = e.target.files[0];
+  if (!file) return;
+  document.getElementById('viewer-filename').textContent = file.name + ' を読み込み中…';
+  const reader = new FileReader();
+  reader.onload = (evt) => loadGLBFromArrayBuffer(evt.target.result, file.name);
+  reader.readAsArrayBuffer(file);
+});
+
+// アプリと同じ場所に置いた anatomy_trains.glb を自動で読み込む(手動選択は不要な場合の既定動作)
+fetch('./anatomy_trains.glb')
+  .then(res => { if (!res.ok) throw new Error('not found'); return res.arrayBuffer(); })
+  .then(buf => loadGLBFromArrayBuffer(buf, 'anatomy_trains.glb'))
+  .catch(() => {
+    document.getElementById('viewer-filename').textContent = '同梱の3Dモデルが見つかりません。上のボタンから手動で選択してください。';
+  });
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./service-worker.js').catch(() => {});
+  });
+}
 </script>
 </body>
 </html>
