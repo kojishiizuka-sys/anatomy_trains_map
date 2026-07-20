@@ -166,24 +166,6 @@
 
         .viewer-section { margin-top: 20px; }
 
-        .file-upload-box {
-            border: 2px dashed var(--border-color);
-            border-radius: 8px;
-            padding: 16px;
-            text-align: center;
-            margin-bottom: 10px;
-        }
-
-        .file-upload-box label {
-            display: inline-block;
-            cursor: pointer;
-            color: var(--accent-color);
-            font-weight: bold;
-            margin: 0;
-        }
-
-        #viewer-filename { font-size: 0.85rem; color: #718096; margin-top: 6px; font-weight: normal; }
-
         #canvas-host {
             width: 100%;
             height: 340px;
@@ -201,6 +183,25 @@
             margin-top: 8px;
             display: none;
         }
+
+        #viewer-status {
+            font-size: 0.8rem;
+            color: #a0aec0;
+            text-align: center;
+            margin-top: 6px;
+        }
+
+        .credit-footer {
+            margin-top: 24px;
+            padding-top: 14px;
+            border-top: 1px solid var(--border-color);
+            font-size: 0.7rem;
+            line-height: 1.5;
+            color: #a0aec0;
+        }
+
+        .credit-footer p { margin-bottom: 6px; }
+        .credit-footer ul { margin: 0 0 6px 1.1em; }
     </style>
 </head>
 <body>
@@ -226,13 +227,19 @@
     </div>
 
     <div class="viewer-section">
-        <div class="file-upload-box">
-            <input type="file" id="glb-file-input" accept=".glb" style="display:none" />
-            <label for="glb-file-input">📦 3Dモデル(GLB)を開く</label>
-            <div id="viewer-filename"></div>
-        </div>
         <div id="canvas-host"></div>
+        <div id="viewer-status"></div>
         <div id="tap-hint">モデルをタップすると、その部位の駅名とラインが表示されます</div>
+    </div>
+
+    <div class="credit-footer">
+        <p>本アプリの3Dモデルは、CC BY-SA 4.0ライセンスのもとで公開されている「Z-Anatomy」および「BodyParts3D（DBCLS）」のデータを改変して使用しています。</p>
+        <ul>
+            <li>Z-Anatomy (https://www.z-anatomy.com/)</li>
+            <li>BodyParts3D (© ライフサイエンス統合データベースセンター)</li>
+            <li>ライセンス詳細: CC BY-SA 4.0 (creativecommons.org)</li>
+        </ul>
+        <p>本アプリ内の3Dモデルデータは、元データと同じくCC BY-SA 4.0ライセンスに基づき、自由に再配布・改変が可能です。</p>
     </div>
 </div>
 
@@ -681,28 +688,18 @@ function loadGLBFromArrayBuffer(buffer, label){
     currentModel = gltf.scene;
     scene.add(currentModel);
     frameObject(currentModel);
-    document.getElementById('viewer-filename').textContent = label + '（' + meshEntries.length + '件）';
     document.getElementById('tap-hint').style.display = 'block';
   }, err => {
-    document.getElementById('viewer-filename').textContent = '読み込みエラー: ' + err.message;
+    document.getElementById('viewer-status').textContent = '読み込みエラー: ' + err.message;
   });
 }
 
-document.getElementById('glb-file-input').addEventListener('change', function(e){
-  const file = e.target.files[0];
-  if (!file) return;
-  document.getElementById('viewer-filename').textContent = file.name + ' を読み込み中…';
-  const reader = new FileReader();
-  reader.onload = (evt) => loadGLBFromArrayBuffer(evt.target.result, file.name);
-  reader.readAsArrayBuffer(file);
-});
-
-// アプリと同じ場所に置いた anatomy_trains.glb を自動で読み込む(手動選択は不要な場合の既定動作)
+// アプリと同じ場所に置いた anatomy_trains.glb を自動で読み込む
 fetch('./anatomy_trains.glb')
   .then(res => { if (!res.ok) throw new Error('not found'); return res.arrayBuffer(); })
   .then(buf => loadGLBFromArrayBuffer(buf, 'anatomy_trains.glb'))
   .catch(() => {
-    document.getElementById('viewer-filename').textContent = '同梱の3Dモデルが見つかりません。上のボタンから手動で選択してください。';
+    document.getElementById('viewer-status').textContent = '3Dモデルを読み込めませんでした。anatomy_trains.glb が index.html と同じ場所にあるか確認してください。';
   });
 
 if ('serviceWorker' in navigator) {
