@@ -115,6 +115,12 @@
 
         .station.highlight { font-weight: bold; color: var(--highlight-color); }
 
+        .station.flash {
+            background-color: #fef3c7;
+            border-radius: 6px;
+            transition: background-color 1s ease-out;
+        }
+
         .station.highlight::before {
             background-color: var(--highlight-color);
             box-shadow: 0 0 0 2px var(--highlight-color);
@@ -197,6 +203,30 @@
             cursor: pointer;
         }
 
+        #color-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px 12px;
+            justify-content: center;
+            margin-top: 12px;
+            display: none;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.75rem;
+            color: #4a5568;
+        }
+
+        .legend-swatch {
+            width: 11px;
+            height: 11px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
         #viewer-status {
             font-size: 0.8rem;
             color: #a0aec0;
@@ -246,6 +276,7 @@
             強調表示された筋だけタップできます。
             <button id="reset-selection-btn" type="button">選択を解除</button>
         </div>
+        <div id="color-legend"></div>
     </div>
 
     <div class="credit-footer">
@@ -554,6 +585,17 @@ const trainColorHex = {
   DFAL:'#378ADD', SFAL:'#639922', DBAL:'#BA7517', SBAL:'#E24B4A',
   BFL:'#888780', FFL:'#534AB7', IFL:'#0F6E56', DFL:'#993C1D'
 };
+const trainDisplayNames = {
+  SBL:'表層後線 (SBL)', SFL:'表層前線 (SFL)', LL:'側線 (LL)',
+  'SPL(R)':'らせん線・右起点 (SPL-R)', 'SPL(L)':'らせん線・左起点 (SPL-L)',
+  DFAL:'深層前腕線 (DFAL)', SFAL:'表層前腕線 (SFAL)', DBAL:'深層後腕線 (DBAL)',
+  SBAL:'表層後腕線 (SBAL)', BFL:'後機能線 (BFL)', FFL:'前機能線 (FFL)',
+  IFL:'同側機能線 (IFL)', DFL:'深層前線 (DFL)'
+};
+const legendEl = document.getElementById('color-legend');
+legendEl.innerHTML = Object.keys(trainColorHex).map(code =>
+  '<span class="legend-item"><span class="legend-swatch" style="background:' + trainColorHex[code] + '"></span>' + trainDisplayNames[code] + '</span>'
+).join('');
 function norm(code){ return code.replace(/[（）]/g, m => m === '（' ? '(' : ')').trim(); }
 function extrasToTrains(extras){
   if (!extras || extras.trains === undefined) return [];
@@ -582,6 +624,9 @@ function initThree(){
   host.appendChild(renderer.domElement);
   controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
+  const tilt = 20 * Math.PI / 180;
+  controls.minPolarAngle = Math.PI / 2 - tilt;
+  controls.maxPolarAngle = Math.PI / 2 + tilt;
   raycaster = new THREE.Raycaster();
   pointer = new THREE.Vector2();
 
@@ -668,6 +713,21 @@ function clearSelection(){
 }
 document.getElementById('reset-selection-btn').addEventListener('click', clearSelection);
 
+function flashStationInResults(labels){
+  const resultsContainer = document.getElementById('results');
+  const stationDivs = resultsContainer.querySelectorAll('.station');
+  const labelSet = new Set(labels);
+  let firstTarget = null;
+  stationDivs.forEach(div => {
+    if (labelSet.has(div.textContent)){
+      div.classList.add('flash');
+      if (!firstTarget) firstTarget = div;
+      setTimeout(() => div.classList.remove('flash'), 1500);
+    }
+  });
+  if (firstTarget) firstTarget.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
 function highlightByLabels(labels){
   if (!currentModel || !labels || labels.length === 0) return;
   const jaNames = new Set();
@@ -696,16 +756,21 @@ function onPointerTap(event){
   // 何かを選択中は、強調表示されている筋以外はタップしても反応しない
   if (tappableSet !== null && !tappableSet.has(data.ja_name)) return;
 
-  applyHighlight(new Set([data.ja_name]), new Set(data.trains || []));
-
   const labels = MESH_TO_STATION[data.ja_name] || [];
-  showResultsFor(labels);
 
-  const textSearch = document.getElementById('muscle-text-search');
-  const select = document.getElementById('muscle-select');
-  if (labels.length){
-    textSearch.value = labels[0];
-    select.value = labels[0];
+  if (tappableSet === null){
+    // 何も選択されていない状態からの最初のタップ → 新規選択として色分けする
+    applyHighlight(new Set([data.ja_name]), new Set(data.trains || []));
+    showResultsFor(labels);
+    const textSearch = document.getElementById('muscle-text-search');
+    const select = document.getElementById('muscle-select');
+    if (labels.length){
+      textSearch.value = labels[0];
+      select.value = labels[0];
+    }
+  } else {
+    // 選択済みの状態でのタップ → 色分けは変えず、一覧内の該当駅を示すだけ
+    flashStationInResults(labels);
   }
 }
 
@@ -725,6 +790,7 @@ function loadGLBFromArrayBuffer(buffer, label){
     scene.add(currentModel);
     frameObject(currentModel);
     document.getElementById('tap-hint').style.display = 'block';
+    document.getElementById('color-legend').style.display = 'flex';
   }, err => {
     document.getElementById('viewer-status').textContent = '読み込みエラー: ' + err.message;
   });
