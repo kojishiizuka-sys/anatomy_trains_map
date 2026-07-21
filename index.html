@@ -234,6 +234,58 @@
             margin-top: 6px;
         }
 
+        .info-section {
+            margin-bottom: 20px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background: var(--accent-light);
+        }
+
+        .info-section summary {
+            cursor: pointer;
+            padding: 12px 15px;
+            font-weight: bold;
+            color: var(--accent-color);
+            list-style: none;
+        }
+
+        .info-section summary::-webkit-details-marker { display: none; }
+
+        .info-section summary::before {
+            content: '▶ ';
+            display: inline-block;
+            transition: transform 0.15s;
+        }
+
+        .info-section[open] summary::before {
+            transform: rotate(90deg);
+        }
+
+        .info-content {
+            padding: 0 15px 15px;
+            font-size: 0.9rem;
+            line-height: 1.7;
+        }
+
+        .info-content h3 {
+            font-size: 0.95rem;
+            color: var(--accent-color);
+            margin: 14px 0 6px;
+        }
+
+        .info-content h3:first-child { margin-top: 0; }
+
+        .info-content ol { margin: 8px 0 8px 1.3em; }
+        .info-content ol li { margin-bottom: 8px; }
+
+        .info-disclaimer {
+            margin-top: 14px;
+            padding-top: 10px;
+            border-top: 1px solid var(--border-color);
+            font-size: 0.8rem;
+            color: #718096;
+        }
+
         .credit-footer {
             margin-top: 24px;
             padding-top: 14px;
@@ -251,7 +303,30 @@
 
 <div class="container">
     <h1>Anatomy Trains Map</h1>
-    
+
+    <details class="info-section">
+        <summary>アナトミートレインとは / このアプリの使い方</summary>
+        <div class="info-content">
+            <h3>アナトミートレインとは</h3>
+            <p>全身を包む「筋膜」は、特定の方向に走る12本の「ライン」によって繋がっています。アナトミートレインは、この繋がりを「路線図」に見立てた理論です。</p>
+            <p>「腰痛の原因が実は同じライン上の足裏にある」など、不調の原因を個別の筋肉だけでなく、12本のラインの繋がりという視点から捉え直すのがアナトミートレインの考え方です。<br>
+            全身のラインを意識することで、痛みや不調の改善、そして本来の姿勢やスムーズな動きを取り戻すヒントが見つかるかもしれません。</p>
+
+            <h3>例）代表的な２つのライン、SBLとSFL</h3>
+            <ol>
+                <li><strong>スーパーフィシャル・バック・ライン（SBL）</strong>: 足裏からふくらはぎ、背中を通って頭頂までを繋ぐ背面全体のラインです。体を後ろから支え、直立姿勢を保つ役割があります。</li>
+                <li><strong>スーパーフィシャル・フロント・ライン（SFL）</strong>: つま先から前もも、腹部を通って耳の後ろまでを繋ぐ前面のラインです。背面のラインとバランスを取り合い、姿勢が崩れないよう引き締める役割を担います。</li>
+            </ol>
+
+            <h3>このアプリの使い方</h3>
+            <p>痛みや動きの悪さなどの不調を感じる筋肉を、検索またはプルダウンメニューで選んでください(画面下の人体図をタップすることによっても選択可能です)。</p>
+            <p>すると選んだ筋肉が通っているラインが表示されます。ラインの表示は２種類あり、ラインを構成する要素名を線で結んだ略図と、人体3Dモデルに実際のラインを投影したものです。</p>
+            <p>そのライン上の筋肉で、実はひどく痛む箇所(テンダーポイント、圧痛点)がないか、柔軟性が落ちている箇所がないかを探ってみてください。</p>
+
+            <p class="info-disclaimer">※本アプリは体の仕組みを学ぶための参考ツールであり、医学的な診断や治療の代わりになるものではありません。痛みが続く場合は医療機関にご相談ください。</p>
+        </div>
+    </details>
+
     <div class="search-box">
         <label for="muscle-text-search">部分一致で検索:</label>
         <div class="search-input-wrap">
