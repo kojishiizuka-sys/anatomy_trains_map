@@ -488,6 +488,10 @@ function showResultsFor(selectedNames) {
                 const stationDiv = document.createElement('div');
                 stationDiv.className = 'station' + (nameSet.has(station) ? ' highlight' : '');
                 stationDiv.textContent = station;
+                stationDiv.style.cursor = 'pointer';
+                stationDiv.addEventListener('click', () => {
+                    if (window.markStationInModel) window.markStationInModel([station]);
+                });
                 card.appendChild(stationDiv);
             });
             resultsContainer.appendChild(card);
@@ -586,16 +590,34 @@ const trainColorHex = {
   BFL:'#888780', FFL:'#534AB7', IFL:'#0F6E56', DFL:'#993C1D'
 };
 const trainDisplayNames = {
-  SBL:'表層後線 (SBL)', SFL:'表層前線 (SFL)', LL:'側線 (LL)',
-  'SPL(R)':'らせん線・右起点 (SPL-R)', 'SPL(L)':'らせん線・左起点 (SPL-L)',
-  DFAL:'深層前腕線 (DFAL)', SFAL:'表層前腕線 (SFAL)', DBAL:'深層後腕線 (DBAL)',
-  SBAL:'表層後腕線 (SBAL)', BFL:'後機能線 (BFL)', FFL:'前機能線 (FFL)',
-  IFL:'同側機能線 (IFL)', DFL:'深層前線 (DFL)'
+  SBL:'スーパーフィシャル・バック・ライン (SBL)',
+  SFL:'スーパーフィシャル・フロント・ライン (SFL)',
+  LL:'ラテラル・ライン (LL)',
+  'SPL(R)':'スパイラル・ライン (SPL) 右起点',
+  'SPL(L)':'スパイラル・ライン (SPL) 左起点',
+  DFAL:'ディープ・フロント・アーム・ライン (DFAL)',
+  SFAL:'スーパーフィシャル・フロント・アーム・ライン (SFAL)',
+  DBAL:'ディープ・バック・アーム・ライン (DBAL)',
+  SBAL:'スーパーフィシャル・バック・アーム・ライン (SBAL)',
+  BFL:'バック・ファンクショナル・ライン (BFL)',
+  FFL:'フロント・ファンクショナル・ライン (FFL)',
+  IFL:'イプシラテラル・ファンクショナル・ライン (IFL)',
+  DFL:'ディープ・フロント・ライン (DFL)'
 };
 const legendEl = document.getElementById('color-legend');
-legendEl.innerHTML = Object.keys(trainColorHex).map(code =>
-  '<span class="legend-item"><span class="legend-swatch" style="background:' + trainColorHex[code] + '"></span>' + trainDisplayNames[code] + '</span>'
-).join('');
+
+function updateLegend(activeTrains){
+  const codes = Object.keys(trainColorHex).filter(c => activeTrains && activeTrains.has(c));
+  if (codes.length === 0){
+    legendEl.style.display = 'none';
+    legendEl.innerHTML = '';
+    return;
+  }
+  legendEl.innerHTML = codes.map(code =>
+    '<span class="legend-item"><span class="legend-swatch" style="background:' + trainColorHex[code] + '"></span>' + trainDisplayNames[code] + '</span>'
+  ).join('');
+  legendEl.style.display = 'flex';
+}
 function norm(code){ return code.replace(/[（）]/g, m => m === '（' ? '(' : ')').trim(); }
 function extrasToTrains(extras){
   if (!extras || extras.trains === undefined) return [];
@@ -667,6 +689,12 @@ function resetColors(){
 // 現在タップ可能な筋(強調表示中の筋)の日本語名Set。null = 制限なし(どこでもタップ可)
 let tappableSet = null;
 
+// 3Dの色分けの元になる状態
+let baseSelectedSet = new Set();   // 主選択(黒で強調)
+let baseActiveTrains = new Set();  // 色付けするトレイン
+const markColor = '#f6ad55';       // 路線図クリックでの一時マーカー色
+let markedJaNames = new Set();     // 路線図クリックでマーカー表示中の筋
+
 // 駅名(グループ名) → 該当する241筋の日本語名リスト、の逆引き表
 const STATION_TO_MESHES = {};
 Object.entries(MESH_TO_STATION).forEach(([ja, labels]) => {
@@ -676,21 +704,20 @@ Object.entries(MESH_TO_STATION).forEach(([ja, labels]) => {
   });
 });
 
-// selectedSet: 強調表示する筋肉(日本語名)のSet, activeTrains: 色付けするトレインのSet
-function applyHighlight(selectedSet, activeTrains){
-  const newTappable = new Set(selectedSet);
+function repaint(){
   meshEntries.forEach(({ mesh, data }) => {
     const mat = mesh.material;
-    if (selectedSet.has(data.ja_name)){
+    if (markedJaNames.has(data.ja_name)){
+      mat.color.set(markColor);
+      mat.opacity = 1; mat.transparent = false;
+    } else if (baseSelectedSet.has(data.ja_name)){
       mat.color.set(tapColor);
       mat.opacity = 1; mat.transparent = false;
     } else {
-      const myTrains = data.trains || [];
-      const shared = myTrains.find(t => activeTrains.has(t));
+      const shared = (data.trains || []).find(t => baseActiveTrains.has(t));
       if (shared){
         mat.color.set(trainColorHex[shared] || neutralColor);
         mat.opacity = 0.55; mat.transparent = true;
-        newTappable.add(data.ja_name);
       } else {
         mat.color.set(neutralColor);
         mat.opacity = 0.1; mat.transparent = true;
@@ -699,13 +726,41 @@ function applyHighlight(selectedSet, activeTrains){
     mat.depthWrite = !mat.transparent;
     mat.needsUpdate = true;
   });
-  tappableSet = newTappable;
 }
+
+// selectedSet: 強調表示する筋肉(日本語名)のSet, activeTrains: 色付けするトレインのSet
+function applyHighlight(selectedSet, activeTrains){
+  baseSelectedSet = selectedSet;
+  baseActiveTrains = activeTrains;
+  markedJaNames = new Set();
+  const newTappable = new Set(selectedSet);
+  meshEntries.forEach(({ data }) => {
+    const shared = (data.trains || []).find(t => activeTrains.has(t));
+    if (shared) newTappable.add(data.ja_name);
+  });
+  tappableSet = newTappable;
+  repaint();
+  updateLegend(activeTrains);
+}
+
+// 路線図(結果一覧)の駅名をクリックした時: 主選択はそのままに、その筋だけ別の色でマーキングする
+function markStationInModel(labels){
+  if (!currentModel || !labels || labels.length === 0) return;
+  const jaNames = new Set();
+  labels.forEach(l => (STATION_TO_MESHES[l] || []).forEach(ja => jaNames.add(ja)));
+  markedJaNames = jaNames;
+  repaint();
+}
+window.markStationInModel = markStationInModel;
 
 function clearSelection(){
   tappableSet = null;
-  if (scene) resetColors();
+  baseSelectedSet = new Set();
+  baseActiveTrains = new Set();
+  markedJaNames = new Set();
+  if (scene) repaint();
   showResultsFor([]);
+  updateLegend(new Set());
   const textSearch = document.getElementById('muscle-text-search');
   const select = document.getElementById('muscle-select');
   textSearch.value = '';
@@ -790,7 +845,6 @@ function loadGLBFromArrayBuffer(buffer, label){
     scene.add(currentModel);
     frameObject(currentModel);
     document.getElementById('tap-hint').style.display = 'block';
-    document.getElementById('color-legend').style.display = 'flex';
   }, err => {
     document.getElementById('viewer-status').textContent = '読み込みエラー: ' + err.message;
   });
